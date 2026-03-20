@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class FlatshareBackendApplication {
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         SpringApplication.run(FlatshareBackendApplication.class, args);
     }
 
