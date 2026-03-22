@@ -4,6 +4,7 @@ import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationResponse;
 import com.flatshareteam.flatsharebackend.accounts.dto.UserDto;
 import com.flatshareteam.flatsharebackend.accounts.model.AccountStatus;
+import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,7 @@ public class DefaultUserService implements UserService {
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(AccountStatus.ACTIVE);
+        user.addRole(new TenantRole());
 
         User savedUser = userRepository.save(user);
 
