@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -33,9 +36,16 @@ public class User {
     @Column(nullable = false)
     private AccountStatus status;
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private TenantRole tenantRole;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Set<UserRole> roles = new HashSet<>();
 
-    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
-    private LandlordRole landlordRole;
+    public void addRole(UserRole role) {
+        roles.add(role);
+        role.setUser(this);
+    }
+
+    public void removeRole(UserRole role) {
+        roles.remove(role);
+        role.setUser(null);
+    }
 }
