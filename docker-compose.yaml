@@ -12,6 +12,16 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  pgweb:
+    container_name: pgweb
+    restart: always
+    image: sosedoff/pgweb
+    ports:
+      - 8081:8081
+    environment:
+      - PGWEB_DATABASE_URL=postgres://flatshare_user:flatshare_password@postgres:5432/flatshare_db?sslmode=disable
+    depends_on:
+      - postgres
 
 volumes:
   postgres_data:
