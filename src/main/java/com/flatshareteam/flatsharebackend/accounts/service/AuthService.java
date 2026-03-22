@@ -53,5 +53,24 @@ public class AuthService {
                 roles
         );
     }
+
+    public LoginResponse refreshSession(UUID sessionId, User user) {
+        String token = jwtService.generateToken(user);
+        
+        List<String> roles = user.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .map(role -> role.replace("ROLE_", ""))
+                .collect(Collectors.toList());
+
+        long expiresIn = expirationTimeMs / 1000;
+
+        return new LoginResponse(
+                token,
+                sessionId,
+                "Bearer",
+                expiresIn,
+                roles
+        );
+    }
 }
 
