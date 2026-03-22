@@ -24,6 +24,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Start PostgreSQL Database
+        run: docker compose up -d
+
+      - name: Wait for database to initialize
+        run: sleep 10
+
       - name: Run tests with Maven
         run: mvn clean verify --batch-mode --no-transfer-progress
 
