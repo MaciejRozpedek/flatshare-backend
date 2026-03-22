@@ -1,5 +1,8 @@
 package com.flatshareteam.flatsharebackend.accounts.model;
 
 public enum AccountStatus {
-    // TO DO
+    ACTIVE,
+    RESET_REQUESTED,
+    BLOCKED,
+    DELETED
 }
