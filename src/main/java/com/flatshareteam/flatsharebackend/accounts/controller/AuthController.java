@@ -8,6 +8,17 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import com.flatshareteam.flatsharebackend.accounts.model.User;
+import java.net.URI;
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/sessions")
 public class AuthController {
@@ -19,8 +30,29 @@ public class AuthController {
     }
 
     @PostMapping()
-    public LoginResponse login(@RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(response.sessionId())
+                .toUri();
+
+        return ResponseEntity.created(location).body(response);
+    }
+
+    @PatchMapping("/{sessionId}")
+    public ResponseEntity<LoginResponse> refreshSession(
+            @PathVariable UUID sessionId,
+            @AuthenticationPrincipal User user) {
+        
+        LoginResponse response = authService.refreshSession(sessionId, user);
+
+        URI location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .build()
+                .toUri();
+
+        return ResponseEntity.created(location).body(response);
     }
 }
 
