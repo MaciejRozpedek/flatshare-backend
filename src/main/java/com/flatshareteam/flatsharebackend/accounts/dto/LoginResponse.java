@@ -1,7 +1,14 @@
 package com.flatshareteam.flatsharebackend.accounts.dto;
 
+import java.util.List;
+import java.util.UUID;
+
 public record LoginResponse(
-        // TO DO
+        String token,
+        UUID sessionId,
+        String type,
+        long expiresIn,
+        List<String> roles
 ) {
 }
 
