@@ -48,6 +48,14 @@ jobs:
           path: target/surefire-reports/
           retention-days: 7
 
+      - name: Upload Test Reports (Failsafe)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: maven-failsafe-reports
+          path: target/failsafe-reports/
+          retention-days: 7
+
       - name: Publish Test Results to GitHub UI
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
