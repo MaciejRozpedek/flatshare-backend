@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.accounts.model.listingModels;
+package com.flatshareteam.flatsharebackend.listing.model;
 
 import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
 import jakarta.persistence.*;
@@ -16,10 +16,12 @@ import java.util.ArrayList;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Listing {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(nullable = false)
@@ -49,4 +51,14 @@ public class Listing {
     @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Unavailability> unavailabilities = new ArrayList<>();
+
+    public void addUnavailability(Unavailability unavailability) {
+        this.unavailabilities.add(unavailability);
+        unavailability.setListing(this);
+    }
+
+    public void removeUnavailability(Unavailability unavailability) {
+        this.unavailabilities.remove(unavailability);
+        unavailability.setListing(null);
+    }
 }

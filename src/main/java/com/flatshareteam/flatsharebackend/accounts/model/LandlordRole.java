@@ -1,6 +1,6 @@
 package com.flatshareteam.flatsharebackend.accounts.model;
 
-import com.flatshareteam.flatsharebackend.accounts.model.listingModels.Listing;
+import com.flatshareteam.flatsharebackend.listing.model.Listing;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,5 +19,15 @@ public class LandlordRole extends UserRole {
 
     public LandlordRole() {
         super(RoleType.LANDLORD);
+    }
+
+    public void addListing(Listing listing) {
+        this.listings.add(listing);
+        listing.setLandlordRole(this);
+    }
+
+    public void removeListing(Listing listing) {
+        this.listings.remove(listing);
+        listing.setLandlordRole(null);
     }
 }

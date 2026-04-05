@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.accounts.model.listingModels;
+package com.flatshareteam.flatsharebackend.listing.model;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.accounts.model.listingModels;
+package com.flatshareteam.flatsharebackend.listing.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -12,10 +12,12 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Unavailability {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @EqualsAndHashCode.Include
     private UUID id;
 
     @Column(nullable = false)
