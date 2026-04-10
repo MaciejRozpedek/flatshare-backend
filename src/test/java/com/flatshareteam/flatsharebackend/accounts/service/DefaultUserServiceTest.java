@@ -3,6 +3,7 @@ package com.flatshareteam.flatsharebackend.accounts.service;
 import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationResponse;
 import com.flatshareteam.flatsharebackend.accounts.model.AccountStatus;
+import com.flatshareteam.flatsharebackend.accounts.model.RoleType;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ class DefaultUserServiceTest {
 
     @Test
     void createUser_ShouldReturnRegistrationResponse_WhenEmailIsUnique() {
-        RegistrationRequest request = new RegistrationRequest("John", "Doe", "john.doe@example.com", "password123");
+        RegistrationRequest request = new RegistrationRequest("John", "Doe", "john.doe@example.com", "password123", RoleType.TENANT);
         
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(request.password())).thenReturn("encodedPassword");
@@ -62,7 +63,7 @@ class DefaultUserServiceTest {
 
     @Test
     void createUser_ShouldThrowException_WhenEmailAlreadyExists() {
-        RegistrationRequest request = new RegistrationRequest("John", "Doe", "john.doe@example.com", "password123");
+        RegistrationRequest request = new RegistrationRequest("John", "Doe", "john.doe@example.com", "password123", RoleType.TENANT);
         
         when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(new User()));
 
