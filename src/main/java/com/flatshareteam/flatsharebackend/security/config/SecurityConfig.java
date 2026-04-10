@@ -40,6 +40,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/users", "/api/v1/users/register").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/sessions").permitAll()
                 .requestMatchers("/api/v1/auth/password-reset/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             )
