@@ -1,6 +1,6 @@
 package com.flatshareteam.flatsharebackend.accounts.model;
 
-import com.flatshareteam.flatsharebackend.listing.model.Listing;
+import com.flatshareteam.flatsharebackend.listings.model.Listing;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;

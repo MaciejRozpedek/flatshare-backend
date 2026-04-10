@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.listing.model;
+package com.flatshareteam.flatsharebackend.listings.model;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,7 +22,13 @@ public class Apartment {
     private UUID id;
 
     @Column(nullable = false)
-    private String address;
+    private String district;
+
+    @Column(nullable = false)
+    private String street;
+
+    @Column(nullable = false)
+    private String aptNumber;
 
     @Column(nullable = false)
     private String city;

@@ -1,10 +1,11 @@
-package com.flatshareteam.flatsharebackend.listing.model;
+package com.flatshareteam.flatsharebackend.listings.model;
 
 import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import java.util.List;
 import java.util.ArrayList;
@@ -39,6 +40,18 @@ public class Listing {
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(nullable = false)
+    private LocalDate availableSince;
+
+    @Column(nullable = false)
+    private LocalDate availableUntil;
+
+    @Column(nullable = false)
+    private String ownerContact;
+
+    @Embedded
+    private ListingAttributes attributes;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
