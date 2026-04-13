@@ -3,9 +3,7 @@ package com.flatshareteam.flatsharebackend.accounts.service;
 import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.RegistrationResponse;
 import com.flatshareteam.flatsharebackend.accounts.dto.UserDto;
-import com.flatshareteam.flatsharebackend.accounts.model.AccountStatus;
-import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
-import com.flatshareteam.flatsharebackend.accounts.model.User;
+import com.flatshareteam.flatsharebackend.accounts.model.*;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -31,13 +29,19 @@ public class DefaultUserService implements UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email already exists");
         }
 
+        UserRole userRole = switch (request.role()) {
+            case TENANT -> new TenantRole();
+            case LANDLORD -> new LandlordRole();
+            case ADMIN -> throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot assign ADMIN role during registration");
+        };
+
         User user = new User();
         user.setFirstName(request.firstName());
         user.setLastName(request.lastName());
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setStatus(AccountStatus.ACTIVE);
-        user.addRole(new TenantRole());
+        user.addRole(userRole);
 
         User savedUser = userRepository.save(user);
 
@@ -47,7 +51,8 @@ public class DefaultUserService implements UserService {
                         savedUser.getId(),
                         savedUser.getFirstName(),
                         savedUser.getLastName(),
-                        savedUser.getEmail()
+                        savedUser.getEmail(),
+                        userRole.getRoleType()
                 )
         );
     }

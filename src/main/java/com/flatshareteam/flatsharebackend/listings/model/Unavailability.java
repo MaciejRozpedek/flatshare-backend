@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.listing.model;
+package com.flatshareteam.flatsharebackend.listings.model;
 
 import jakarta.persistence.*;
 import lombok.*;

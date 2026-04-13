@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -30,6 +31,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Void> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+    }
+
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<Void> handleInvalidDataAccessApiUsageException(InvalidDataAccessApiUsageException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
     }
 }
 
