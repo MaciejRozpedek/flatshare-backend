@@ -1,8 +1,9 @@
 package com.flatshareteam.flatsharebackend.listings.controller;
 
 import com.flatshareteam.flatsharebackend.accounts.model.User;
+import com.flatshareteam.flatsharebackend.listings.dto.ListingStatusResponse;
 import com.flatshareteam.flatsharebackend.listings.dto.*;
-import com.flatshareteam.flatsharebackend.listings.service.ListingService;
+import com.flatshareteam.flatsharebackend.listings.service.DefaultListingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -24,7 +25,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ListingController {
 
-    private final ListingService listingService;
+    private final DefaultListingService listingService;
 
     @GetMapping("/{listingId}")
     public ResponseEntity<ListingDto> getListing(@PathVariable UUID listingId) {
@@ -45,9 +46,9 @@ public class ListingController {
     @PreAuthorize("hasRole('LANDLORD')")
     public ResponseEntity<CreateListingResponse> createListing(
             @Valid @RequestBody CreateListingRequest request,
-            @AuthenticationPrincipal User currentUser) {
+            @AuthenticationPrincipal User authenticatedUser) {
 
-        CreateListingResponse response = listingService.createListing(request, currentUser.getId());
+        CreateListingResponse response = listingService.createListing(request, authenticatedUser.getId());
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -62,9 +63,36 @@ public class ListingController {
     public ResponseEntity<ListingDto> updateListing(
             @PathVariable UUID listingId,
             @Valid @RequestBody UpdateListingRequest request,
-            @AuthenticationPrincipal User currentUser) {
+            @AuthenticationPrincipal User authenticatedUser) {
 
-        ListingDto response = listingService.updateListing(listingId, request, currentUser.getId());
+        ListingDto response = listingService.updateListing(listingId, request, authenticatedUser.getId());
         return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{listingId}/publish")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<ListingStatusResponse> publish(
+            @PathVariable UUID listingId,
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        return ResponseEntity.ok(listingService.publish(listingId, authenticatedUser.getId()));
+    }
+
+    @PatchMapping("/{listingId}/hide")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<ListingStatusResponse> hide(
+            @PathVariable UUID listingId,
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        return ResponseEntity.ok(listingService.hide(listingId, authenticatedUser.getId()));
+    }
+
+    @PatchMapping("/{listingId}/archive")
+    @PreAuthorize("hasRole('LANDLORD')")
+    public ResponseEntity<ListingStatusResponse> archive(
+            @PathVariable UUID listingId,
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        return ResponseEntity.ok(listingService.archive(listingId, authenticatedUser.getId()));
     }
 }
