@@ -65,6 +65,10 @@ public class Listing {
     @Builder.Default
     private List<Unavailability> unavailabilities = new ArrayList<>();
 
+    @OneToMany(mappedBy = "listing", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ListingPhoto> photos = new ArrayList<>();
+
     public void addUnavailability(Unavailability unavailability) {
         this.unavailabilities.add(unavailability);
         unavailability.setListing(this);
@@ -73,5 +77,15 @@ public class Listing {
     public void removeUnavailability(Unavailability unavailability) {
         this.unavailabilities.remove(unavailability);
         unavailability.setListing(null);
+    }
+
+    public void addPhoto(ListingPhoto photo) {
+        this.photos.add(photo);
+        photo.setListing(this);
+    }
+
+    public void removePhoto(ListingPhoto photo) {
+        this.photos.remove(photo);
+        photo.setListing(null);
     }
 }
