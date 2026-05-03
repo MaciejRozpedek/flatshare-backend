@@ -22,6 +22,14 @@ services:
       - PGWEB_DATABASE_URL=postgres://flatshare_user:flatshare_password@postgres:5432/flatshare_db?sslmode=disable
     depends_on:
       - postgres
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: flatshare-azurite
+    ports:
+      - "10000:10000"
+    volumes:
+      - azurite_data:/data
 
 volumes:
   postgres_data:
+  azurite_data:
