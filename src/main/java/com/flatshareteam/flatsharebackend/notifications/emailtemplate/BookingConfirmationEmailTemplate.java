@@ -2,6 +2,7 @@ package com.flatshareteam.flatsharebackend.notifications.emailtemplate;
 
 import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Map;
 
@@ -20,9 +21,10 @@ public class BookingConfirmationEmailTemplate implements EmailTemplate {
 
     @Override
     public String buildHtmlBody(Map<String, Object> payload) {
+        String bookingId = payload.get("bookingId") != null ? HtmlUtils.htmlEscape(payload.get("bookingId").toString()) : "";
         String content = "<h2>Potwierdzenie rezerwacji 🎉</h2>" +
                 "<p>Mamy świetne wieści! Twoja rezerwacja została pomyślnie potwierdzona.</p>" +
-                "<div class=\"highlight-box\">ID Rezerwacji: " + payload.get("bookingId") + "</div>" +
+                "<div class=\"highlight-box\">ID Rezerwacji: " + bookingId + "</div>" +
                 "<p>Wejdź w szczegóły swojej rezerwacji w aplikacji, aby zobaczyć więcej informacji.</p>";
         return EmailTemplateWrapper.wrapInTemplate(content);
     }

@@ -2,6 +2,7 @@ package com.flatshareteam.flatsharebackend.notifications.emailtemplate;
 
 import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Map;
 
@@ -20,7 +21,8 @@ public class RegistrationConfirmationEmailTemplate implements EmailTemplate {
 
     @Override
     public String buildHtmlBody(Map<String, Object> payload) {
-        String content = "<h2>Witaj na pokładzie, " + payload.get("firstName") + "! 👋</h2>" +
+        String escapedFirstName = payload.get("firstName") != null ? HtmlUtils.htmlEscape(payload.get("firstName").toString()) : "";
+        String content = "<h2>Witaj na pokładzie, " + escapedFirstName + "! 👋</h2>" +
                 "<p>Cieszymy się, że dołączyłeś do społeczności <b>FlatShare</b>.</p>" +
                 "<p>Nasza platforma pomoże Ci szybko i bezpiecznie znaleźć idealny pokój lub współlokatora.</p>" +
                 "<div style=\"text-align: left;\"><a href=\"#\" class=\"btn\">Przejdź do aplikacji</a></div>";
