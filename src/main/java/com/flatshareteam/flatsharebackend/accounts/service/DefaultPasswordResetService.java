@@ -13,7 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
+
+import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
+import com.flatshareteam.flatsharebackend.notifications.model.NotificationData;
+import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +27,7 @@ public class DefaultPasswordResetService implements PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final INotificationPort notificationPort;
 
     @Override
     @Transactional
@@ -43,7 +49,15 @@ public class DefaultPasswordResetService implements PasswordResetService {
 
             tokenRepository.save(resetToken);
 
-            // TODO: wysylka emaila
+            NotificationData notificationMessage = new NotificationData(
+                    NotificationType.PASSWORD_RESET,
+                    Map.of(
+                            "email", email,
+                            "resetToken", token
+                    )
+            );
+            notificationPort.notify(user.getId(), notificationMessage);
+            
             System.out.println("DEBUG: Wygenerowano token dla " + email + ": " + token);
         });
     }
