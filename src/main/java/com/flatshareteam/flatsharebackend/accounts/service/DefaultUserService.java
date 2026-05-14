@@ -8,19 +8,27 @@ import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
 import java.util.UUID;
+
+import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
+import com.flatshareteam.flatsharebackend.notifications.model.NotificationData;
+import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 
 @Service
 public class DefaultUserService implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final INotificationPort notificationPort;
 
-    public DefaultUserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public DefaultUserService(UserRepository userRepository, PasswordEncoder passwordEncoder, INotificationPort notificationPort) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.notificationPort = notificationPort;
     }
 
     @Override
@@ -44,6 +52,15 @@ public class DefaultUserService implements UserService {
         user.addRole(userRole);
 
         User savedUser = userRepository.save(user);
+
+        NotificationData notificationMessage = new NotificationData(
+                NotificationType.REGISTRATION_CONFIRMATION,
+                Map.of(
+                        "firstName", request.firstName(),
+                        "email", request.email()
+                )
+        );
+        notificationPort.notify(savedUser.getId(), notificationMessage);
 
         return new RegistrationResponse(
                 "New user created",

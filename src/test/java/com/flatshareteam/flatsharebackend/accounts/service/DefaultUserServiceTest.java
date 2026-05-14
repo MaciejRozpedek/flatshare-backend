@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
+import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,6 +31,9 @@ class DefaultUserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private INotificationPort notificationPort;
 
     @InjectMocks
     private DefaultUserService defaultUserService;

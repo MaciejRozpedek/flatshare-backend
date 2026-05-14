@@ -11,6 +11,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -34,6 +35,9 @@ class DefaultPasswordResetServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private INotificationPort notificationPort;
 
     @InjectMocks
     private DefaultPasswordResetService passwordResetService;
