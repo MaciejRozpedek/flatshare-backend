@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.rentals.model;
+package com.flatshareteam.flatsharebackend.bookings.model;
 
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.listings.model.Listing;
@@ -10,14 +10,14 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "rentals")
+@Table(name = "bookings")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Rental {
+public class Booking {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -40,7 +40,7 @@ public class Rental {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private RentalStatus status;
+    private BookingStatus status;
 
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -57,7 +57,8 @@ public class Rental {
             createdAt = Instant.now();
         }
         if (status == null) {
-            status = RentalStatus.PENDING_APPROVAL;
+            status = BookingStatus.PENDING_APPROVAL;
         }
     }
 }
+

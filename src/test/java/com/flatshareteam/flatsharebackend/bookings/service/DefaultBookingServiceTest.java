@@ -1,4 +1,4 @@
-package com.flatshareteam.flatsharebackend.rentals.service;
+package com.flatshareteam.flatsharebackend.bookings.service;
 
 import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
@@ -9,10 +9,10 @@ import com.flatshareteam.flatsharebackend.listings.repository.UnavailabilityRepo
 import com.flatshareteam.flatsharebackend.notifications.model.NotificationData;
 import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
-import com.flatshareteam.flatsharebackend.rentals.dto.RentalStatusResponse;
-import com.flatshareteam.flatsharebackend.rentals.model.Rental;
-import com.flatshareteam.flatsharebackend.rentals.model.RentalStatus;
-import com.flatshareteam.flatsharebackend.rentals.repository.RentalRepository;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingStatusResponse;
+import com.flatshareteam.flatsharebackend.bookings.model.Booking;
+import com.flatshareteam.flatsharebackend.bookings.model.BookingStatus;
+import com.flatshareteam.flatsharebackend.bookings.repository.BookingRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -32,10 +32,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DefaultRentalServiceTest {
+class DefaultBookingServiceTest {
 
     @Mock
-    private RentalRepository rentalRepository;
+    private BookingRepository bookingRepository;
 
     @Mock
     private UnavailabilityRepository unavailabilityRepository;
@@ -44,26 +44,26 @@ class DefaultRentalServiceTest {
     private INotificationPort notificationPort;
 
     @InjectMocks
-    private DefaultRentalService rentalService;
+    private DefaultBookingService bookingService;
 
     @Test
-    void acceptPendingRentalCreatesUnavailabilityAndNotifiesTenant() {
-        UUID rentalId = UUID.randomUUID();
+    void acceptPendingBookingCreatesUnavailabilityAndNotifiesTenant() {
+        UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        Rental rental = buildRental(rentalId, ownerId, tenantId, RentalStatus.PENDING_APPROVAL);
+        Booking booking = buildBooking(bookingId, ownerId, tenantId, BookingStatus.PENDING_APPROVAL);
 
-        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(rental));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(unavailabilityRepository.existsByListingIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
-                rental.getListing().getId(), rental.getEndDate(), rental.getStartDate())).thenReturn(false);
+                booking.getListing().getId(), booking.getEndDate(), booking.getStartDate())).thenReturn(false);
         when(unavailabilityRepository.save(any(Unavailability.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(rentalRepository.save(any(Rental.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RentalStatusResponse response = rentalService.accept(rentalId, ownerId, "ok");
+        BookingStatusResponse response = bookingService.accept(bookingId, ownerId, "ok");
 
-        assertThat(response.status()).isEqualTo(RentalStatus.ACCEPTED);
-        assertThat(rental.getDecisionAt()).isNotNull();
-        assertThat(rental.getDecisionReason()).isEqualTo("ok");
+        assertThat(response.status()).isEqualTo(BookingStatus.PENDING_PAYMENT);
+        assertThat(booking.getDecisionAt()).isNotNull();
+        assertThat(booking.getDecisionReason()).isEqualTo("ok");
 
         verify(unavailabilityRepository).save(any(Unavailability.class));
         ArgumentCaptor<NotificationData> dataCaptor = ArgumentCaptor.forClass(NotificationData.class);
@@ -72,33 +72,33 @@ class DefaultRentalServiceTest {
     }
 
     @Test
-    void rejectPendingRentalUpdatesStatusWithoutNotification() {
-        UUID rentalId = UUID.randomUUID();
+    void rejectPendingBookingUpdatesStatusWithoutNotification() {
+        UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        Rental rental = buildRental(rentalId, ownerId, tenantId, RentalStatus.PENDING_APPROVAL);
+        Booking booking = buildBooking(bookingId, ownerId, tenantId, BookingStatus.PENDING_APPROVAL);
 
-        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(rental));
-        when(rentalRepository.save(any(Rental.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        RentalStatusResponse response = rentalService.reject(rentalId, ownerId, "no");
+        BookingStatusResponse response = bookingService.reject(bookingId, ownerId, "no");
 
-        assertThat(response.status()).isEqualTo(RentalStatus.REJECTED);
+        assertThat(response.status()).isEqualTo(BookingStatus.REJECTED);
         verify(notificationPort, never()).notify(any(), any());
     }
 
     @Test
     void acceptThrowsWhenOwnerMismatch() {
-        UUID rentalId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        Rental rental = buildRental(rentalId, UUID.randomUUID(), tenantId, RentalStatus.PENDING_APPROVAL);
+        Booking booking = buildBooking(bookingId, UUID.randomUUID(), tenantId, BookingStatus.PENDING_APPROVAL);
 
-        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(rental));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> rentalService.accept(rentalId, ownerId, null)
+                () -> bookingService.accept(bookingId, ownerId, null)
         );
 
         assertThat(ex.getStatusCode().value()).isEqualTo(403);
@@ -106,16 +106,16 @@ class DefaultRentalServiceTest {
 
     @Test
     void acceptThrowsWhenAlreadyDecided() {
-        UUID rentalId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        Rental rental = buildRental(rentalId, ownerId, tenantId, RentalStatus.ACCEPTED);
+        Booking booking = buildBooking(bookingId, ownerId, tenantId, BookingStatus.PENDING_PAYMENT);
 
-        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(rental));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> rentalService.accept(rentalId, ownerId, null)
+                () -> bookingService.accept(bookingId, ownerId, null)
         );
 
         assertThat(ex.getStatusCode().value()).isEqualTo(409);
@@ -123,24 +123,24 @@ class DefaultRentalServiceTest {
 
     @Test
     void acceptThrowsWhenDatesOverlap() {
-        UUID rentalId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
         UUID ownerId = UUID.randomUUID();
         UUID tenantId = UUID.randomUUID();
-        Rental rental = buildRental(rentalId, ownerId, tenantId, RentalStatus.PENDING_APPROVAL);
+        Booking booking = buildBooking(bookingId, ownerId, tenantId, BookingStatus.PENDING_APPROVAL);
 
-        when(rentalRepository.findById(rentalId)).thenReturn(Optional.of(rental));
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
         when(unavailabilityRepository.existsByListingIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
-                rental.getListing().getId(), rental.getEndDate(), rental.getStartDate())).thenReturn(true);
+            booking.getListing().getId(), booking.getEndDate(), booking.getStartDate())).thenReturn(true);
 
         ResponseStatusException ex = assertThrows(
                 ResponseStatusException.class,
-                () -> rentalService.accept(rentalId, ownerId, null)
+                () -> bookingService.accept(bookingId, ownerId, null)
         );
 
         assertThat(ex.getStatusCode().value()).isEqualTo(409);
     }
 
-    private Rental buildRental(UUID rentalId, UUID ownerId, UUID tenantId, RentalStatus status) {
+    private Booking buildBooking(UUID bookingId, UUID ownerId, UUID tenantId, BookingStatus status) {
         User owner = new User();
         owner.setId(ownerId);
         LandlordRole landlordRole = new LandlordRole();
@@ -157,14 +157,15 @@ class DefaultRentalServiceTest {
         TenantRole tenantRole = new TenantRole();
         tenantRole.setUser(tenant);
 
-        Rental rental = new Rental();
-        rental.setId(rentalId);
-        rental.setListing(listing);
-        rental.setTenantRole(tenantRole);
-        rental.setStartDate(LocalDate.of(2025, 1, 1));
-        rental.setEndDate(LocalDate.of(2025, 6, 30));
-        rental.setStatus(status);
-        rental.setCreatedAt(Instant.now());
-        return rental;
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setListing(listing);
+        booking.setTenantRole(tenantRole);
+        booking.setStartDate(LocalDate.of(2025, 1, 1));
+        booking.setEndDate(LocalDate.of(2025, 6, 30));
+        booking.setStatus(status);
+        booking.setCreatedAt(Instant.now());
+        return booking;
     }
 }
+
