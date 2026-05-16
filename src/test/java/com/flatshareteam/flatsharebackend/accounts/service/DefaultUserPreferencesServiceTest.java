@@ -2,12 +2,9 @@ package com.flatshareteam.flatsharebackend.accounts.service;
 
 import com.flatshareteam.flatsharebackend.accounts.dto.UserPreferencesDto;
 import com.flatshareteam.flatsharebackend.accounts.dto.UserPreferencesRequest;
-import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
-import com.flatshareteam.flatsharebackend.accounts.model.RoleType;
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
-import com.flatshareteam.flatsharebackend.accounts.model.UserPreferences;
-import com.flatshareteam.flatsharebackend.accounts.repository.UserPreferencesRepository;
+import com.flatshareteam.flatsharebackend.accounts.repository.TenantRoleRepository;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 
@@ -37,13 +35,13 @@ class DefaultUserPreferencesServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private UserPreferencesRepository userPreferencesRepository;
+    private TenantRoleRepository tenantRoleRepository;
 
     @InjectMocks
     private DefaultUserPreferencesService userPreferencesService;
 
     @Test
-    void savePreferences_ShouldCreatePreferences_WhenUserExistsAndPreferencesDoNotExist() {
+    void savePreferences_ShouldSavePreferences_WhenUserExists() {
         UUID userId = UUID.randomUUID();
 
         User user = new User();
@@ -58,24 +56,13 @@ class DefaultUserPreferencesServiceTest {
         UserPreferencesRequest request = new UserPreferencesRequest(
             BigDecimal.valueOf(1500),
             "PLN",
-                true,
+            true,
             false,
             List.of("Mokotów", "Ochota")
         );
 
-        UserPreferences savedPreferences = UserPreferences.builder()
-                .id(UUID.randomUUID())
-            .tenantRole(tenantRole)
-            .maxPrice(request.maxPrice())
-                .currency(request.currency())
-            .smokingAllowed(request.smokingAllowed())
-            .petsAllowed(request.petsAllowed())
-            .preferredDistricts(List.copyOf(request.preferredDistricts()))
-                .build();
-
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userPreferencesRepository.findByTenantRole_Id(tenantRole.getId())).thenReturn(Optional.empty());
-        when(userPreferencesRepository.save(any(UserPreferences.class))).thenReturn(savedPreferences);
+        when(tenantRoleRepository.save(any(TenantRole.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserPreferencesDto response = userPreferencesService.savePreferences(userId, request);
 
@@ -83,11 +70,11 @@ class DefaultUserPreferencesServiceTest {
         assertEquals(BigDecimal.valueOf(1500), response.maxPrice());
         assertEquals("PLN", response.currency());
         verify(userRepository).findById(userId);
-        verify(userPreferencesRepository).save(any(UserPreferences.class));
+        verify(tenantRoleRepository).save(any(TenantRole.class));
     }
 
     @Test
-    void getPreferences_ShouldThrowNotFound_WhenPreferencesDoNotExist() {
+    void getPreferences_ShouldReturnEmpty_WhenPreferencesAreNotSet() {
         UUID userId = UUID.randomUUID();
 
         User user = new User();
@@ -99,17 +86,15 @@ class DefaultUserPreferencesServiceTest {
         user.addRole(tenantRole);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userPreferencesRepository.findByTenantRole_Id(tenantRole.getId())).thenReturn(Optional.empty());
 
         UserPreferencesDto response = userPreferencesService.getPreferences(userId);
 
         assertNotNull(response);
         assertEquals(List.of(), response.preferredDistricts());
-        verify(userPreferencesRepository).findByTenantRole_Id(tenantRole.getId());
     }
 
     @Test
-        void savePreferences_ShouldUpdateExistingPreferences_WhenPreferencesExist() {
+    void savePreferences_ShouldUpdateExistingPreferences_WhenPreferencesExist() {
         UUID userId = UUID.randomUUID();
 
         User user = new User();
@@ -118,17 +103,12 @@ class DefaultUserPreferencesServiceTest {
 
         TenantRole tenantRole = new TenantRole();
         tenantRole.setId(UUID.randomUUID());
+        tenantRole.setMaxPrice(BigDecimal.valueOf(1200));
+        tenantRole.setCurrency("PLN");
+        tenantRole.setSmokingAllowed(false);
+        tenantRole.setPetsAllowed(false);
+        tenantRole.setPreferredDistricts(Set.of("Śródmieście"));
         user.addRole(tenantRole);
-
-        UserPreferences existing = UserPreferences.builder()
-            .id(UUID.randomUUID())
-            .tenantRole(tenantRole)
-            .maxPrice(BigDecimal.valueOf(1200))
-            .currency("PLN")
-            .smokingAllowed(false)
-            .petsAllowed(false)
-            .preferredDistricts(List.of("Śródmieście"))
-            .build();
 
         UserPreferencesRequest request = new UserPreferencesRequest(
             BigDecimal.valueOf(1800),
@@ -139,18 +119,17 @@ class DefaultUserPreferencesServiceTest {
         );
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userPreferencesRepository.findByTenantRole_Id(tenantRole.getId())).thenReturn(Optional.of(existing));
-        when(userPreferencesRepository.save(any(UserPreferences.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(tenantRoleRepository.save(any(TenantRole.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserPreferencesDto response = userPreferencesService.savePreferences(userId, request);
 
         assertEquals(BigDecimal.valueOf(1800), response.maxPrice());
         assertEquals(true, response.petsAllowed());
-        verify(userPreferencesRepository).save(any(UserPreferences.class));
+        verify(tenantRoleRepository).save(any(TenantRole.class));
     }
 
     @Test
-        void savePreferences_ShouldRejectNonTenantUser_WhenTenantRoleMissing() {
+    void savePreferences_ShouldRejectNonTenantUser_WhenTenantRoleMissing() {
         UUID userId = UUID.randomUUID();
 
         User user = new User();
@@ -171,6 +150,6 @@ class DefaultUserPreferencesServiceTest {
                 () -> userPreferencesService.savePreferences(userId, request));
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
-        verify(userPreferencesRepository, never()).save(any(UserPreferences.class));
+        verify(tenantRoleRepository, never()).save(any(TenantRole.class));
     }
 }
