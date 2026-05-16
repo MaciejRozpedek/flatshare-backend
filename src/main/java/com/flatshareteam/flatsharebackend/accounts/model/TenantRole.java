@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -31,7 +32,7 @@ public class TenantRole extends UserRole {
         joinColumns = @JoinColumn(name = "tenant_role_id")
     )
     @Column(name = "district")
-    private Set<String> preferredDistricts;
+    private Set<String> preferredDistricts = new HashSet<>();
 
     public TenantRole() {
         super(RoleType.TENANT);
