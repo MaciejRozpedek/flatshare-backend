@@ -1,6 +1,6 @@
 package com.flatshareteam.flatsharebackend.accounts.dto;
 
-import com.flatshareteam.flatsharebackend.accounts.model.UserPreferences;
+import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,13 +12,13 @@ public record UserPreferencesDto(
     Boolean petsAllowed,
     List<String> preferredDistricts
 ) {
-    public static UserPreferencesDto from(UserPreferences preferences) {
+    public static UserPreferencesDto from(TenantRole tenantRole) {
         return new UserPreferencesDto(
-        preferences.getMaxPrice(),
-        preferences.getCurrency(),
-        preferences.getSmokingAllowed(),
-        preferences.getPetsAllowed(),
-        List.copyOf(preferences.getPreferredDistricts())
+        tenantRole.getMaxPrice(),
+        tenantRole.getCurrency(),
+        tenantRole.getSmokingAllowed(),
+        tenantRole.getPetsAllowed(),
+        List.copyOf(tenantRole.getPreferredDistricts())
         );
     }
 }
