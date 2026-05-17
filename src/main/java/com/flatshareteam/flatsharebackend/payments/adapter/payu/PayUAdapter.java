@@ -77,7 +77,7 @@ public class PayUAdapter implements IPaymentGateway {
         try {
             ResponseEntity<PayUOrderResponse> response = restTemplate.postForEntity(url, request, PayUOrderResponse.class);
             
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            if ((response.getStatusCode().is2xxSuccessful() || response.getStatusCode().is3xxRedirection()) && response.getBody() != null) {
                 PayUOrderResponse body = response.getBody();
                 if ("SUCCESS".equals(body.getStatus().getStatusCode())) {
                     payment.setProviderReference(body.getOrderId());
