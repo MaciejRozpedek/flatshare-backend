@@ -1,5 +1,7 @@
 package com.flatshareteam.flatsharebackend.listings.dto;
 
+import com.flatshareteam.flatsharebackend.listings.model.ListingStatus;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,7 +17,8 @@ public record ListingDto(
         String ownerContact,
         Double area,
         Location location,
-        Attributes attributes
+        Attributes attributes,
+        ListingStatus status
 ) {
     public record Location(
             String city,
