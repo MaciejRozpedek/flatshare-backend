@@ -35,7 +35,8 @@ public class ListingMapper {
                 listing.getOwnerContact(),
                 area,
                 location,
-                mapAttributes(listing.getAttributes())
+                mapAttributes(listing.getAttributes()),
+                listing.getStatus()
         );
     }
 
