@@ -4,32 +4,35 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
 @Table(name = "tenant_roles")
 @Getter
 @Setter
 public class TenantRole extends UserRole {
 
-// TO DO: Add tenant-specific fields
-//    @Column(name = "max_price")
-//    private BigDecimal maxPrice;
-//
-//    @Column(length = 3)
-//    private String currency;
-//
-//    @Column(name = "smoking_allowed")
-//    private Boolean smokingAllowed;
-//
-//    @Column(name = "pets_allowed")
-//    private Boolean petsAllowed;
-//
-//    @ElementCollection(fetch = FetchType.LAZY)
-//    @CollectionTable(
-//        name = "tenant_preferred_districts",
-//        joinColumns = @JoinColumn(name = "tenant_role_id")
-//    )
-//    @Column(name = "district")
-//    private Set<String> preferredDistricts;
+    @Column(name = "max_price")
+    private BigDecimal maxPrice;
+
+    @Column(length = 3)
+    private String currency;
+
+    @Column(name = "smoking_allowed")
+    private Boolean smokingAllowed;
+
+    @Column(name = "pets_allowed")
+    private Boolean petsAllowed;
+
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+        name = "tenant_preferred_districts",
+        joinColumns = @JoinColumn(name = "tenant_role_id")
+    )
+    @Column(name = "district")
+    private Set<String> preferredDistricts = new HashSet<>();
 
     public TenantRole() {
         super(RoleType.TENANT);
