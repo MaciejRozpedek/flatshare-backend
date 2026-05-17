@@ -3,6 +3,8 @@ package com.flatshareteam.flatsharebackend.bookings.controller;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateRequest;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingCancelResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingDetailsResponse;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingDecisionRequest;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingStatusResponse;
 import com.flatshareteam.flatsharebackend.bookings.model.BookingStatus;
@@ -35,21 +37,21 @@ class BookingControllerTest {
     @Test
     void shouldCreateBooking() {
         // given
-        UUID roomId = UUID.randomUUID();
+        UUID listingId = UUID.randomUUID();
         LocalDate start = LocalDate.now();
         LocalDate end = LocalDate.now().plusMonths(3);
-        BookingCreateRequest request = new BookingCreateRequest(roomId, start, end);
+        BookingCreateRequest request = new BookingCreateRequest(listingId, start, end);
         User user = new User();
         user.setId(UUID.randomUUID());
 
-        UUID rentalId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
         BookingCreateResponse mockResponse = new BookingCreateResponse(
-                rentalId,
+                bookingId,
                 BookingStatus.PENDING_APPROVAL,
                 Instant.now(),
                 BigDecimal.valueOf(100),
                 "PLN",
-                "/api/v1/bookings/" + rentalId
+                "/api/v1/bookings/" + bookingId
         );
 
         when(bookingService.create(request, user.getId())).thenReturn(mockResponse);
@@ -59,7 +61,7 @@ class BookingControllerTest {
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getHeaders().getLocation().toString()).isEqualTo("/api/v1/bookings/" + rentalId);
+        assertThat(response.getHeaders().getLocation().toString()).isEqualTo("/api/v1/bookings/" + bookingId);
         assertThat(response.getBody()).isEqualTo(mockResponse);
     }
 
@@ -71,16 +73,17 @@ class BookingControllerTest {
         user.setId(UUID.randomUUID());
         BookingDecisionRequest request = new BookingDecisionRequest("Changed mind");
 
-        BookingStatusResponse mockResponse = new BookingStatusResponse(
+        BookingCancelResponse mockResponse = new BookingCancelResponse(
                 bookingId,
-                BookingStatus.CANCELLED,
-                null, null, Instant.now(), "Changed mind"
+                "CANCELLED",
+                Instant.now(),
+                "NOT_APPLICABLE"
         );
 
         when(bookingService.cancel(bookingId, user.getId(), "Changed mind")).thenReturn(mockResponse);
 
         // when
-        ResponseEntity<BookingStatusResponse> response = bookingController.cancel(bookingId, user, request);
+        ResponseEntity<BookingCancelResponse> response = bookingController.cancel(bookingId, user, request);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -94,16 +97,17 @@ class BookingControllerTest {
         User user = new User();
         user.setId(UUID.randomUUID());
 
-        BookingStatusResponse mockResponse = new BookingStatusResponse(
+        BookingCancelResponse mockResponse = new BookingCancelResponse(
                 bookingId,
-                BookingStatus.CANCELLED,
-                null, null, Instant.now(), null
+                "CANCELLED",
+                Instant.now(),
+                "NOT_APPLICABLE"
         );
 
         when(bookingService.cancel(bookingId, user.getId(), null)).thenReturn(mockResponse);
 
         // when
-        ResponseEntity<BookingStatusResponse> response = bookingController.cancel(bookingId, user, null);
+        ResponseEntity<BookingCancelResponse> response = bookingController.cancel(bookingId, user, null);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -117,37 +121,22 @@ class BookingControllerTest {
         User user = new User();
         user.setId(UUID.randomUUID());
 
-        BookingStatusResponse mockResponse = new BookingStatusResponse(
+        BookingDetailsResponse mockResponse = new BookingDetailsResponse(
                 bookingId,
-                BookingStatus.PENDING_PAYMENT,
-                Instant.now(), Instant.now().plusSeconds(86400), null, null
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "CONFIRMED",
+                LocalDate.now(),
+                LocalDate.now().plusMonths(3),
+                BigDecimal.valueOf(100),
+                "PLN",
+                "SUCCEEDED"
         );
 
         when(bookingService.getStatus(bookingId, user.getId())).thenReturn(mockResponse);
 
         // when
-        ResponseEntity<BookingStatusResponse> response = bookingController.getStatus(bookingId, user);
-
-        // then
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(mockResponse);
-    }
-
-    @Test
-    void shouldGetBookingStatusWithUnauthenticatedIntegration() {
-        // given
-        UUID bookingId = UUID.randomUUID();
-
-        BookingStatusResponse mockResponse = new BookingStatusResponse(
-                bookingId,
-                BookingStatus.PENDING_PAYMENT,
-                Instant.now(), Instant.now().plusSeconds(86400), null, null
-        );
-
-        when(bookingService.getStatus(bookingId, null)).thenReturn(mockResponse);
-
-        // when
-        ResponseEntity<BookingStatusResponse> response = bookingController.getStatus(bookingId, null);
+        ResponseEntity<BookingDetailsResponse> response = bookingController.getStatus(bookingId, user);
 
         // then
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

@@ -3,6 +3,8 @@ package com.flatshareteam.flatsharebackend.bookings.controller;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateRequest;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingCancelResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingDetailsResponse;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingDecisionRequest;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingStatusResponse;
 import com.flatshareteam.flatsharebackend.bookings.service.BookingService;
@@ -29,7 +31,7 @@ public class BookingController {
             @AuthenticationPrincipal User authenticatedUser
     ) {
         BookingCreateResponse response = bookingService.create(request, authenticatedUser.getId());
-        URI location = URI.create("/api/v1/bookings/" + response.rentalId());
+        URI location = URI.create("/api/v1/bookings/" + response.bookingId());
         return ResponseEntity.created(location).body(response);
     }
 
@@ -59,24 +61,24 @@ public class BookingController {
 
     @PostMapping("/{bookingId}/cancel")
     @PreAuthorize("hasRole('TENANT')")
-    public ResponseEntity<BookingStatusResponse> cancel(
+    public ResponseEntity<BookingCancelResponse> cancel(
             @PathVariable UUID bookingId,
             @AuthenticationPrincipal User authenticatedUser,
             @RequestBody(required = false) BookingDecisionRequest request
     ) {
         String reason = request != null ? request.reason() : null;
-        BookingStatusResponse response = bookingService.cancel(bookingId, authenticatedUser.getId(), reason);
+        BookingCancelResponse response = bookingService.cancel(bookingId, authenticatedUser.getId(), reason);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{bookingId}")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<BookingStatusResponse> getStatus(
+    public ResponseEntity<BookingDetailsResponse> getStatus(
             @PathVariable UUID bookingId,
             @AuthenticationPrincipal User authenticatedUser
     ) {
         UUID userId = authenticatedUser != null ? authenticatedUser.getId() : null;
-        BookingStatusResponse response = bookingService.getStatus(bookingId, userId);
+        BookingDetailsResponse response = bookingService.getStatus(bookingId, userId);
         return ResponseEntity.ok(response);
     }
 }

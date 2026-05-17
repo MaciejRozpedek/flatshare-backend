@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record BookingCreateRequest(
-        UUID roomId,
+        UUID listingId,
         LocalDate startDate,
         LocalDate endDate
 ) {}

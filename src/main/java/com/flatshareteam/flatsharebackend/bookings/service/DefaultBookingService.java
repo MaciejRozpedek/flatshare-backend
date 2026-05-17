@@ -8,6 +8,8 @@ import com.flatshareteam.flatsharebackend.notifications.model.NotificationType;
 import com.flatshareteam.flatsharebackend.notifications.port.INotificationPort;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateRequest;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingCreateResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingCancelResponse;
+import com.flatshareteam.flatsharebackend.bookings.dto.BookingDetailsResponse;
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.accounts.repository.TenantRoleRepository;
 import com.flatshareteam.flatsharebackend.listings.model.ListingStatus;
@@ -45,8 +47,8 @@ public class DefaultBookingService implements BookingService {
     @Override
     @Transactional
     public BookingCreateResponse create(BookingCreateRequest request, UUID tenantUserId) {
-        Listing listing = listingRepository.findFirstByRoomIdOrderByCreatedAtDesc(request.roomId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found for this room"));
+        Listing listing = listingRepository.findById(request.listingId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
 
         TenantRole tenantRole = tenantRoleRepository.findByUserId(tenantUserId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tenant role not found"));
@@ -150,7 +152,7 @@ public class DefaultBookingService implements BookingService {
 
     @Override
     @Transactional
-    public BookingStatusResponse cancel(UUID bookingId, UUID tenantUserId, String reason) {
+    public BookingCancelResponse cancel(UUID bookingId, UUID tenantUserId, String reason) {
         Booking booking = loadBooking(bookingId);
         
         if (booking.getTenantRole() == null || booking.getTenantRole().getUser() == null || !tenantUserId.equals(booking.getTenantRole().getUser().getId())) {
@@ -167,18 +169,16 @@ public class DefaultBookingService implements BookingService {
         booking.setDecisionReason(reason);
         Booking saved = bookingRepository.save(booking);
 
-        return new BookingStatusResponse(
+        return new BookingCancelResponse(
                 saved.getId(),
-                saved.getStatus(),
-                null,
-                null,
+                saved.getStatus().name(),
                 cancelledAt,
-                saved.getDecisionReason()
+                "NOT_APPLICABLE"
         );
     }
 
     @Override
-    public BookingStatusResponse getStatus(UUID bookingId, UUID userId) {
+    public BookingDetailsResponse getStatus(UUID bookingId, UUID userId) {
         Booking booking = loadBooking(bookingId);
 
         if (userId != null) {
@@ -195,26 +195,21 @@ public class DefaultBookingService implements BookingService {
             }
         }
 
-        Instant acceptedAt = null;
-        Instant paymentRequiredUntil = null;
-        Instant rejectedAt = null;
+        BigDecimal totalPrice = booking.getListing() != null && booking.getListing().getPrice() != null ? booking.getListing().getPrice().getAmount() : BigDecimal.ZERO;
+        String currency = booking.getListing() != null && booking.getListing().getPrice() != null ? booking.getListing().getPrice().getCurrency() : "PLN";
 
-        if (booking.getStatus() == BookingStatus.PENDING_PAYMENT || booking.getStatus() == BookingStatus.ACCEPTED) {
-            acceptedAt = booking.getDecisionAt();
-            if (acceptedAt != null) {
-                paymentRequiredUntil = acceptedAt.plus(PAYMENT_GRACE_PERIOD);
-            }
-        } else if (booking.getStatus() == BookingStatus.REJECTED || booking.getStatus() == BookingStatus.CANCELLED) {
-            rejectedAt = booking.getDecisionAt();
-        }
+        String paymentStatus = booking.getStatus() == BookingStatus.PENDING_PAYMENT ? "PENDING" : "SUCCEEDED";
 
-        return new BookingStatusResponse(
+        return new BookingDetailsResponse(
                 booking.getId(),
-                booking.getStatus(),
-                acceptedAt,
-                paymentRequiredUntil,
-                rejectedAt,
-                booking.getDecisionReason()
+                booking.getListing() != null ? booking.getListing().getId() : null,
+                booking.getTenantRole() != null && booking.getTenantRole().getUser() != null ? booking.getTenantRole().getUser().getId() : null,
+                booking.getStatus().name(),
+                booking.getStartDate(),
+                booking.getEndDate(),
+                totalPrice,
+                currency,
+                paymentStatus
         );
     }
 
