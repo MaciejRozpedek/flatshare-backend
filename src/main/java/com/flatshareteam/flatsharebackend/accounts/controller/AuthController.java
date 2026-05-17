@@ -2,7 +2,9 @@ package com.flatshareteam.flatsharebackend.accounts.controller;
 
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginResponse;
+import com.flatshareteam.flatsharebackend.accounts.dto.SessionResponse;
 import com.flatshareteam.flatsharebackend.accounts.service.AuthService;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,6 +54,13 @@ public class AuthController {
                 .toUri();
 
         return ResponseEntity.created(location).body(response);
+    }
+
+    @GetMapping("/{sessionId}")
+    public ResponseEntity<SessionResponse> getSession(
+            @PathVariable UUID sessionId,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(authService.getSession(sessionId, user));
     }
 }
 

@@ -4,6 +4,7 @@ import com.flatshareteam.flatsharebackend.accounts.model.PasswordResetToken;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.PasswordResetTokenRepository;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
+import com.flatshareteam.flatsharebackend.accounts.repository.UserSessionRepository;
 import com.flatshareteam.flatsharebackend.common.exception.InvalidResetTokenException;
 import com.flatshareteam.flatsharebackend.common.exception.WeakPasswordException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class DefaultPasswordResetService implements PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final INotificationPort notificationPort;
+    private final UserSessionRepository userSessionRepository;
 
     @Override
     @Transactional
@@ -87,6 +89,8 @@ public class DefaultPasswordResetService implements PasswordResetService {
 
         User user = resetToken.getUser();
 
+        userSessionRepository.deleteAllByUser_Id(user.getId());
+
         String encodedPassword = passwordEncoder.encode(newPassword);
         user.setPasswordHash(encodedPassword);
         userRepository.save(user);
@@ -102,5 +106,6 @@ public class DefaultPasswordResetService implements PasswordResetService {
     @Transactional
     public void cleanupExpiredAndUsedTokens() {
         tokenRepository.deleteByExpiresAtBeforeOrUsedTrue(LocalDateTime.now());
+        userSessionRepository.deleteByExpiresAtBefore(LocalDateTime.now());
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 import java.util.function.Function;
 
 @Service
@@ -25,8 +26,10 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(UserDetails userDetails) {
+    public String generateToken(UserDetails userDetails, UUID sessionId) {
         return Jwts.builder()
+                .id(UUID.randomUUID().toString())
+                .claim("sessionId", sessionId.toString())
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + expirationTimeMs))
@@ -49,6 +52,11 @@ public class JwtService {
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
+    }
+
+    public UUID extractSessionId(String token) {
+        String sessionIdStr = extractClaim(token, claims -> claims.get("sessionId", String.class));
+        return sessionIdStr != null ? UUID.fromString(sessionIdStr) : null;
     }
 
     private boolean isTokenExpired(String token) {

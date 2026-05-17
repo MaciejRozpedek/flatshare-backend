@@ -4,6 +4,7 @@ import com.flatshareteam.flatsharebackend.accounts.model.PasswordResetToken;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.PasswordResetTokenRepository;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
+import com.flatshareteam.flatsharebackend.accounts.repository.UserSessionRepository;
 import com.flatshareteam.flatsharebackend.common.exception.InvalidResetTokenException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,9 @@ class DefaultPasswordResetServiceTest {
 
     @Mock
     private INotificationPort notificationPort;
+
+    @Mock
+    private UserSessionRepository userSessionRepository;
 
     @InjectMocks
     private DefaultPasswordResetService passwordResetService;

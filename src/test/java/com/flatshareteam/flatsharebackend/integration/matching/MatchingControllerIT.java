@@ -1,56 +1,54 @@
 package com.flatshareteam.flatsharebackend.integration.matching;
 
+import com.flatshareteam.flatsharebackend.accounts.dto.LoginRequest;
+import com.flatshareteam.flatsharebackend.accounts.dto.LoginResponse;
 import com.flatshareteam.flatsharebackend.accounts.model.AccountStatus;
 import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.LandlordRoleRepository;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserRepository;
+import com.flatshareteam.flatsharebackend.integration.BaseIntegrationTest;
 import com.flatshareteam.flatsharebackend.listings.model.*;
 import com.flatshareteam.flatsharebackend.listings.repository.ApartmentRepository;
 import com.flatshareteam.flatsharebackend.listings.repository.ListingRepository;
 import com.flatshareteam.flatsharebackend.listings.repository.RoomRepository;
-import com.flatshareteam.flatsharebackend.security.service.JwtService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional
-class MatchingControllerIT {
+class MatchingControllerIT extends BaseIntegrationTest {
 
-    @Autowired private MockMvc mockMvc;
     @Autowired private UserRepository userRepository;
     @Autowired private LandlordRoleRepository landlordRoleRepository;
     @Autowired private ApartmentRepository apartmentRepository;
     @Autowired private RoomRepository roomRepository;
     @Autowired private ListingRepository listingRepository;
-    @Autowired private JwtService jwtService;
+    @Autowired private PasswordEncoder passwordEncoder;
 
+    private static final String TEST_PASSWORD = "SecretPassword123!";
     private String tenantToken;
     private String landlordToken;
     private LandlordRole landlordRole;
 
     @BeforeEach
-    void setUp() {
-        User landlord = createLandlord();
-        landlordRole = landlordRoleRepository.findByUserId(landlord.getId()).orElseThrow();
-        landlordToken = "Bearer " + jwtService.generateToken(landlord);
-        tenantToken = "Bearer " + jwtService.generateToken(createTenantWithPreferences());
+    void setUp() throws Exception {
+        AuthenticatedUser landlord = createLandlord();
+        landlordRole = landlordRoleRepository.findByUserId(landlord.user().getId()).orElseThrow();
+        landlordToken = landlord.authHeader();
+        tenantToken = createTenantWithPreferences().authHeader();
     }
 
     // Auth
@@ -82,14 +80,14 @@ class MatchingControllerIT {
         tenantWithoutPrefs.setFirstName("No");
         tenantWithoutPrefs.setLastName("Prefs");
         tenantWithoutPrefs.setEmail("noprefs@test.com");
-        tenantWithoutPrefs.setPasswordHash("hash");
+        tenantWithoutPrefs.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
         tenantWithoutPrefs.setStatus(AccountStatus.ACTIVE);
 
         TenantRole role = new TenantRole();
         tenantWithoutPrefs.addRole(role);
-        userRepository.save(tenantWithoutPrefs);
+        tenantWithoutPrefs = userRepository.save(tenantWithoutPrefs);
 
-        String token = "Bearer " + jwtService.generateToken(tenantWithoutPrefs);
+        String token = login(tenantWithoutPrefs);
 
         mockMvc.perform(get("/api/v1/matches")
                         .header(HttpHeaders.AUTHORIZATION, token))
@@ -177,12 +175,12 @@ class MatchingControllerIT {
                 .andExpect(jsonPath("$.totalElements").value(3));
     }
 
-    private User createTenantWithPreferences() {
+    private AuthenticatedUser createTenantWithPreferences() throws Exception {
         User user = new User();
         user.setFirstName("Jan");
         user.setLastName("Lokator");
         user.setEmail("tenant@test.com");
-        user.setPasswordHash("hash");
+        user.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
         user.setStatus(AccountStatus.ACTIVE);
 
         TenantRole role = new TenantRole();
@@ -192,21 +190,41 @@ class MatchingControllerIT {
         role.setSmokingAllowed(false);
 
         user.addRole(role);
-        return userRepository.save(user);
+        user = userRepository.save(user);
+        return new AuthenticatedUser(user, login(user));
     }
 
-    private User createLandlord() {
+    private AuthenticatedUser createLandlord() throws Exception {
         User user = new User();
         user.setFirstName("Joe");
         user.setLastName("Charles");
         user.setEmail("landlord@test.com");
-        user.setPasswordHash("hash");
+        user.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
         user.setStatus(AccountStatus.ACTIVE);
 
         LandlordRole role =
                 new LandlordRole();
         user.addRole(role);
-        return userRepository.save(user);
+        user = userRepository.save(user);
+        return new AuthenticatedUser(user, login(user));
+    }
+
+    private String login(User user) throws Exception {
+        LoginRequest request = new LoginRequest(user.getEmail(), TEST_PASSWORD);
+
+        String response = mockMvc.perform(post("/api/v1/sessions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(asJsonString(request)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        LoginResponse loginResponse = jsonMapper.readValue(response, LoginResponse.class);
+        return loginResponse.type() + " " + loginResponse.token();
+    }
+
+    private record AuthenticatedUser(User user, String authHeader) {
     }
 
     private void createListing(String city, String district, BigDecimal price, boolean petsAllowed, ListingStatus status) {
