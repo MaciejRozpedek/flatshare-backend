@@ -28,7 +28,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -195,6 +199,33 @@ public class DefaultBookingService implements BookingService {
             }
         }
 
+        return toDetailsResponse(booking);
+    }
+
+    @Override
+    public List<BookingDetailsResponse> getAllForUser(UUID userId) {
+        List<Booking> asTenant = bookingRepository.findByTenantRoleUserId(userId);
+        List<Booking> asLandlord = bookingRepository.findByListingLandlordRoleUserId(userId);
+
+        Set<UUID> seen = new HashSet<>();
+        List<Booking> combined = new ArrayList<>();
+        for (Booking b : asTenant) {
+            if (seen.add(b.getId())) {
+                combined.add(b);
+            }
+        }
+        for (Booking b : asLandlord) {
+            if (seen.add(b.getId())) {
+                combined.add(b);
+            }
+        }
+
+        return combined.stream()
+                .map(this::toDetailsResponse)
+                .toList();
+    }
+
+    private BookingDetailsResponse toDetailsResponse(Booking booking) {
         BigDecimal totalPrice = booking.getListing() != null && booking.getListing().getPrice() != null ? booking.getListing().getPrice().getAmount() : BigDecimal.ZERO;
         String currency = booking.getListing() != null && booking.getListing().getPrice() != null ? booking.getListing().getPrice().getCurrency() : "PLN";
 

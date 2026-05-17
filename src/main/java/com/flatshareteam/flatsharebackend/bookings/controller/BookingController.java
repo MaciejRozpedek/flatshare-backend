@@ -15,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +24,15 @@ import java.util.UUID;
 public class BookingController {
 
     private final BookingService bookingService;
+
+    @GetMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<BookingDetailsResponse>> getAll(
+            @AuthenticationPrincipal User authenticatedUser
+    ) {
+        List<BookingDetailsResponse> bookings = bookingService.getAllForUser(authenticatedUser.getId());
+        return ResponseEntity.ok(bookings);
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('TENANT')")
