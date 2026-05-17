@@ -2,6 +2,7 @@ package com.flatshareteam.flatsharebackend.accounts.service;
 
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginResponse;
+import com.flatshareteam.flatsharebackend.accounts.dto.SessionResponse;
 import com.flatshareteam.flatsharebackend.accounts.model.*;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserSessionRepository;
 import com.flatshareteam.flatsharebackend.security.service.JwtService;
@@ -151,6 +152,38 @@ class AuthServiceTest {
     }
 
     @Test
+    void getSession_ShouldReturnSessionResponse_WhenSessionIsValid() {
+        // given
+        User mockUser = createUserWithRole("test@example.com", RoleType.TENANT);
+        UserSession userSession = createSavedSession(mockUser);
+
+        when(userSessionRepository.findById(userSession.getId())).thenReturn(Optional.of(userSession));
+
+        // when
+        SessionResponse response = authService.getSession(userSession.getId(), mockUser);
+
+        // then
+        assertEquals(userSession.getId(), response.sessionId());
+        assertEquals(mockUser.getId(), response.userId());
+    }
+
+    @Test
+    void getSession_ShouldThrowForbidden_WhenSessionBelongsToDifferentUser() {
+        // given
+        User sessionOwner = createUserWithRole("owner@example.com", RoleType.TENANT);
+        User currentUser = createUserWithRole("current@example.com", RoleType.TENANT);
+        UserSession userSession = createSavedSession(sessionOwner);
+
+        when(userSessionRepository.findById(userSession.getId())).thenReturn(Optional.of(userSession));
+
+        // when & then
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.getSession(userSession.getId(), currentUser));
+
+        assertEquals(403, exception.getStatusCode().value());
+    }
+
+    @Test
     void login_ShouldHandleUserWithMultipleRoles() {
         // given
         LoginRequest request = new LoginRequest("multi@example.com", "password123");
@@ -205,6 +238,7 @@ class AuthServiceTest {
 
     private User createUserWithRole(String email, RoleType roleType) {
         User user = new User();
+        user.setId(UUID.randomUUID());
         user.setEmail(email);
         user.setPasswordHash("encodedPass");
 

@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.not;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -172,6 +173,36 @@ class AuthControllerIT extends BaseIntegrationTest {
 
         // when & then
         mockMvc.perform(patch("/api/v1/sessions/{sessionId}", sessionId))
+                .andExpect(status().isUnauthorized());
+    }
+
+    // ====================== GET SESSION TESTS ======================
+
+    @Test
+    void shouldGetSessionSuccessfully() throws Exception {
+        // given
+        UserSession session = new UserSession();
+        session.setUser(testUser);
+        session.setExpiresAt(LocalDateTime.now().plusHours(1));
+        userSessionRepository.save(session);
+
+        String token = jwtService.generateToken(testUser, session.getId());
+
+        // when & then
+        mockMvc.perform(get("/api/v1/sessions/{sessionId}", session.getId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.sessionId").value(session.getId().toString()))
+                .andExpect(jsonPath("$.userId").value(testUser.getId().toString()));
+    }
+
+    @Test
+    void shouldFailGetSessionWhenNoAuthTokenProvided() throws Exception {
+        // given
+        UUID sessionId = UUID.randomUUID();
+
+        // when & then
+        mockMvc.perform(get("/api/v1/sessions/{sessionId}", sessionId))
                 .andExpect(status().isUnauthorized());
     }
 }

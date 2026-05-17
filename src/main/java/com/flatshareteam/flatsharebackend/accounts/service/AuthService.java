@@ -2,6 +2,7 @@ package com.flatshareteam.flatsharebackend.accounts.service;
 
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginResponse;
+import com.flatshareteam.flatsharebackend.accounts.dto.SessionResponse;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.model.UserSession;
 import com.flatshareteam.flatsharebackend.accounts.repository.UserSessionRepository;
@@ -71,6 +72,7 @@ public class AuthService {
         UserSession session = userSessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.UNAUTHORIZED, "Session not found"));
+        ensureSessionBelongsToUser(session, user);
 
         if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new ResponseStatusException(
@@ -95,6 +97,26 @@ public class AuthService {
                 expiresIn,
                 roles
         );
+    }
+
+    public SessionResponse getSession(UUID sessionId, User user) {
+        UserSession session = userSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Session not found"));
+        ensureSessionBelongsToUser(session, user);
+
+        if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Session expired");
+        }
+
+        return new SessionResponse(session.getId(), session.getUser().getId());
+    }
+
+    private void ensureSessionBelongsToUser(UserSession session, User user) {
+        if (!session.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Session does not belong to current user");
+        }
     }
 }
 
