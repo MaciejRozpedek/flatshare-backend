@@ -6,6 +6,7 @@ import com.flatshareteam.flatsharebackend.bookings.dto.BookingCancelResponse;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingDetailsResponse;
 import com.flatshareteam.flatsharebackend.bookings.dto.BookingStatusResponse;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface BookingService {
@@ -14,5 +15,6 @@ public interface BookingService {
     BookingStatusResponse reject(UUID bookingId, UUID ownerUserId, String reason);
     BookingCancelResponse cancel(UUID bookingId, UUID tenantUserId, String reason);
     BookingDetailsResponse getStatus(UUID bookingId, UUID userId);
+    List<BookingDetailsResponse> getAllForUser(UUID userId);
 }
 
