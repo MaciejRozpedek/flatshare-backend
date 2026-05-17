@@ -213,9 +213,60 @@ public class DefaultBookingService implements BookingService {
         );
     }
 
+    @Override
+    @Transactional
+    public void confirmPayment(UUID bookingId) {
+        Booking booking = loadBooking(bookingId);
+        if (booking.getStatus() == BookingStatus.PENDING_PAYMENT) {
+            booking.setStatus(BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void failPayment(UUID bookingId) {
+        Booking booking = loadBooking(bookingId);
+        if (booking.getStatus() == BookingStatus.PENDING_PAYMENT) {
+            booking.setStatus(BookingStatus.PAYMENT_FAILED);
+            bookingRepository.save(booking);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void expireBooking(UUID bookingId) {
+        Booking booking = loadBooking(bookingId);
+        if (booking.getStatus() == BookingStatus.PENDING_PAYMENT) {
+            booking.setStatus(BookingStatus.EXPIRED);
+            bookingRepository.save(booking);
+            
+            // Release unavailability
+            unavailabilityRepository.deleteByListingIdAndStartDateAndEndDate(
+                    booking.getListing().getId(),
+                    booking.getStartDate(),
+                    booking.getEndDate()
+            );
+        }
+    }
+
     private Booking loadBooking(UUID bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedRate = 60000)
+    @Transactional
+    public void expireOldPendingPayments() {
+        Instant threshold = Instant.now().minus(Duration.ofMinutes(15));
+        java.util.List<Booking> expiredBookings = bookingRepository.findAll().stream()
+                .filter(b -> b.getStatus() == BookingStatus.PENDING_PAYMENT)
+                .filter(b -> b.getDecisionAt() != null && b.getDecisionAt().isBefore(threshold))
+                .toList();
+        
+        for (Booking booking : expiredBookings) {
+            expireBooking(booking.getId());
+        }
     }
 
     private void assertOwner(Booking booking, UUID ownerUserId) {
