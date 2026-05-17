@@ -1,21 +1,20 @@
 package com.flatshareteam.flatsharebackend.accounts.model;
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.EqualsAndHashCode;
-
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "user_roles")
-@Inheritance(strategy = InheritanceType.JOINED)
+@Table(name = "user_sessions")
 @Getter
 @Setter
 @NoArgsConstructor
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public abstract class UserRole {
+public class UserSession {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -24,15 +23,8 @@ public abstract class UserRole {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @EqualsAndHashCode.Include
     private User user;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role_type", nullable = false, updatable = false)
-    @EqualsAndHashCode.Include
-    private RoleType roleType;
-
-    protected UserRole(RoleType roleType) {
-        this.roleType = roleType;
-    }
+    @Column(nullable = false)
+    private LocalDateTime expiresAt;
 }

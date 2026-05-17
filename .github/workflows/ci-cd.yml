@@ -78,7 +78,7 @@ jobs:
     if: (github.event_name == 'push' && 
      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/KAN-16-CD' || github.ref == 'refs/heads/KAN-47')) 
       || 
-     (github.event_name == 'workflow_dispatch' && inputs.run-deploy == 'true')
+     (github.event_name == 'workflow_dispatch' && inputs.run-deploy == true)
     permissions:
       id-token: write
       contents: read

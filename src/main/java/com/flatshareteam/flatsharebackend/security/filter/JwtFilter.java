@@ -1,5 +1,6 @@
 package com.flatshareteam.flatsharebackend.security.filter;
 
+import com.flatshareteam.flatsharebackend.accounts.repository.UserSessionRepository;
 import com.flatshareteam.flatsharebackend.security.service.CustomUserDetailsService;
 import com.flatshareteam.flatsharebackend.security.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -15,16 +16,19 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final UserSessionRepository userSessionRepository;
 
-    public JwtFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
+    public JwtFilter(JwtService jwtService, CustomUserDetailsService userDetailsService, UserSessionRepository userSessionRepository) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.userSessionRepository = userSessionRepository;
     }
 
     @Override
@@ -52,14 +56,18 @@ public class JwtFilter extends OncePerRequestFilter {
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
                 if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                            userDetails,
-                            null,
-                            userDetails.getAuthorities()
-                    );
+                    UUID sessionId = jwtService.extractSessionId(jwt);
 
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    if (sessionId != null && userSessionRepository.existsById(sessionId)) {
+                        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
+
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             }
         } catch (Exception e) {
