@@ -6,6 +6,8 @@ import com.flatshareteam.flatsharebackend.listings.model.Listing;
 import com.flatshareteam.flatsharebackend.listings.model.ListingAttributes;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
 public class ListingMapper {
 
@@ -36,7 +38,8 @@ public class ListingMapper {
                 area,
                 location,
                 mapAttributes(listing.getAttributes()),
-                listing.getStatus()
+                listing.getStatus(),
+                mapUnavailability(listing)
         );
     }
 
@@ -62,5 +65,18 @@ public class ListingMapper {
                 attributes.isCloseToShops(),
                 attributes.getProfile()
         );
+    }
+
+    private List<ListingDto.UnavailabilityDto> mapUnavailability(Listing listing) {
+        if (listing.getUnavailabilities() == null) {
+            return List.of();
+        }
+        return listing.getUnavailabilities().stream()
+                .map(unavailability -> new ListingDto.UnavailabilityDto(
+                        unavailability.getStartDate(),
+                        unavailability.getEndDate(),
+                        unavailability.getReason()
+                ))
+                .toList();
     }
 }

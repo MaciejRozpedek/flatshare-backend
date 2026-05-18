@@ -1,9 +1,9 @@
 package com.flatshareteam.flatsharebackend.listings.service;
 
 import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
-import com.flatshareteam.flatsharebackend.accounts.model.RoleType;
-import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.LandlordRoleRepository;
+import com.flatshareteam.flatsharebackend.bookings.model.BookingStatus;
+import com.flatshareteam.flatsharebackend.bookings.repository.BookingRepository;
 import com.flatshareteam.flatsharebackend.listings.dto.ListingStatusResponse;
 import com.flatshareteam.flatsharebackend.listings.dto.*;
 import com.flatshareteam.flatsharebackend.listings.mapper.ListingMapper;
@@ -12,6 +12,7 @@ import com.flatshareteam.flatsharebackend.listings.repository.ApartmentRepositor
 import com.flatshareteam.flatsharebackend.listings.repository.ListingRepository;
 import com.flatshareteam.flatsharebackend.listings.repository.ListingSpecifications;
 import com.flatshareteam.flatsharebackend.listings.repository.RoomRepository;
+import com.flatshareteam.flatsharebackend.listings.repository.UnavailabilityRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,6 +36,13 @@ public class DefaultListingService implements ListingService {
     private final RoomRepository roomRepository;
     private final LandlordRoleRepository landlordRoleRepository;
     private final ListingMapper listingMapper;
+    private final UnavailabilityRepository unavailabilityRepository;
+    private final BookingRepository bookingRepository;
+
+    private static final List<BookingStatus> COMMITTED_BOOKING_STATUSES = List.of(
+            BookingStatus.PENDING_PAYMENT,
+            BookingStatus.ACCEPTED
+    );
 
     @Override
     @Transactional
@@ -186,6 +195,35 @@ public class DefaultListingService implements ListingService {
         return toResponse(savedListing);
     }
 
+    @Override
+    @Transactional
+    public void addUnavailability(UUID listingId, UnavailabilityRequest request, UUID userId) {
+        Listing listing = loadOwnedListing(listingId, userId);
+
+        assertValidUnavailabilityDates(request);
+        assertNoOverlappingUnavailability(listingId, request);
+        assertNoCommittedBookingOverlap(listingId, request);
+
+        Unavailability unavailability = Unavailability.builder()
+                .startDate(request.since())
+                .endDate(request.until())
+                .reason(request.message())
+                .build();
+
+        listing.addUnavailability(unavailability);
+        listingRepository.save(listing);
+    }
+
+    @Override
+    @Transactional
+    public void removeUnavailability(UUID listingId, UUID unavailabilityId, UUID userId) {
+        loadOwnedListing(listingId, userId);
+        int deleted = unavailabilityRepository.deleteByIdAndListingId(unavailabilityId, listingId);
+        if (deleted == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Unavailability not found");
+        }
+    }
+
     private Listing loadOwnedListing(UUID listingId, UUID userId) {
         return listingRepository.findByIdAndLandlordRoleUserId(listingId, userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
@@ -193,5 +231,36 @@ public class DefaultListingService implements ListingService {
 
     private ListingStatusResponse toResponse(Listing listing) {
         return new ListingStatusResponse(listing.getId(), listing.getStatus());
+    }
+
+    private void assertValidUnavailabilityDates(UnavailabilityRequest request) {
+        if (request.since().isAfter(request.until())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start date cannot be after end date");
+        }
+    }
+
+    private void assertNoOverlappingUnavailability(UUID listingId, UnavailabilityRequest request) {
+        boolean overlaps = unavailabilityRepository
+                .existsByListingIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        listingId,
+                        request.until(),
+                        request.since()
+                );
+        if (overlaps) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Listing already unavailable in selected dates");
+        }
+    }
+
+    private void assertNoCommittedBookingOverlap(UUID listingId, UnavailabilityRequest request) {
+        boolean overlaps = bookingRepository
+                .existsByListingIdAndStatusInAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                        listingId,
+                        COMMITTED_BOOKING_STATUSES,
+                        request.until(),
+                        request.since()
+                );
+        if (overlaps) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Listing has a committed booking in selected dates");
+        }
     }
 }
