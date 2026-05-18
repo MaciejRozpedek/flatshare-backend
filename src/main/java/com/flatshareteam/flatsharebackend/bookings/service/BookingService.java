@@ -15,6 +15,11 @@ public interface BookingService {
     BookingStatusResponse reject(UUID bookingId, UUID ownerUserId, String reason);
     BookingCancelResponse cancel(UUID bookingId, UUID tenantUserId, String reason);
     BookingDetailsResponse getStatus(UUID bookingId, UUID userId);
+
+    void confirmPayment(UUID bookingId);
+    void failPayment(UUID bookingId);
+    void expireBooking(UUID bookingId);
+
     List<BookingDetailsResponse> getAllForUser(UUID userId);
 }
 

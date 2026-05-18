@@ -14,4 +14,5 @@ public interface UnavailabilityRepository extends JpaRepository<Unavailability, 
             LocalDate endDate,
             LocalDate startDate
     );
+    void deleteByListingIdAndStartDateAndEndDate(UUID listingId, LocalDate startDate, LocalDate endDate);
 }
