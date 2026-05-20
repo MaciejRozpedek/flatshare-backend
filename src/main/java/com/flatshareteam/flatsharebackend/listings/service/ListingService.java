@@ -6,6 +6,7 @@ import com.flatshareteam.flatsharebackend.listings.dto.CreateListingResponse;
 import com.flatshareteam.flatsharebackend.listings.dto.ListingDto;
 import com.flatshareteam.flatsharebackend.listings.dto.ListingFilterCriteria;
 import com.flatshareteam.flatsharebackend.listings.dto.ListingStatusResponse;
+import com.flatshareteam.flatsharebackend.listings.dto.UnavailabilityRequest;
 import com.flatshareteam.flatsharebackend.listings.dto.UpdateListingRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,4 +21,6 @@ public interface ListingService {
     ListingStatusResponse publish(UUID listingId, UUID userId);
     ListingStatusResponse hide(UUID listingId, UUID userId);
     ListingStatusResponse archive(UUID listingId, UUID userId);
+    void addUnavailability(UUID listingId, UnavailabilityRequest request, UUID userId);
+    void removeUnavailability(UUID listingId, UUID unavailabilityId, UUID userId);
 }
