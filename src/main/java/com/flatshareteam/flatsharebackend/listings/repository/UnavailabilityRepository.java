@@ -16,6 +16,7 @@ public interface UnavailabilityRepository extends JpaRepository<Unavailability, 
             LocalDate endDate,
             LocalDate startDate
     );
+    void deleteByListingIdAndStartDateAndEndDate(UUID listingId, LocalDate startDate, LocalDate endDate);
 
     @Modifying
     @Query("delete from Unavailability u where u.id = :id and u.listing.id = :listingId")
