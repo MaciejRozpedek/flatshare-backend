@@ -21,6 +21,7 @@ public interface ListingService {
     ListingStatusResponse publish(UUID listingId, UUID userId);
     ListingStatusResponse hide(UUID listingId, UUID userId);
     ListingStatusResponse archive(UUID listingId, UUID userId);
+    ListingStatusResponse hideByModeration(UUID listingId);
     void addUnavailability(UUID listingId, UnavailabilityRequest request, UUID userId);
     void removeUnavailability(UUID listingId, UUID unavailabilityId, UUID userId);
 }

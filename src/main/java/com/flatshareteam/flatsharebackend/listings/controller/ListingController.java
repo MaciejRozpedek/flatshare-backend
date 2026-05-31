@@ -97,6 +97,12 @@ public class ListingController {
         return ResponseEntity.ok(listingService.archive(listingId, authenticatedUser.getId()));
     }
 
+    @PatchMapping("/{listingId}/moderation/hide")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ListingStatusResponse> hideByModeration(@PathVariable UUID listingId) {
+        return ResponseEntity.ok(listingService.hideByModeration(listingId));
+    }
+
     @PostMapping("/{listingId}/unavailability")
     @PreAuthorize("hasRole('LANDLORD')")
     public ResponseEntity<Void> addUnavailability(
