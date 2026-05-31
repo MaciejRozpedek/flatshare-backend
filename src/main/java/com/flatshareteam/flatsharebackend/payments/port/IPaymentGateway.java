@@ -10,4 +10,13 @@ public interface IPaymentGateway {
      * @return the redirect URL to the payment gateway page
      */
     String initiatePayment(Payment payment, com.flatshareteam.flatsharebackend.payments.controller.dto.PaymentInitiationRequest request);
+
+    /**
+     * Initiates a full refund for a completed payment.
+     *
+     * @param payment the payment to refund
+     * @param reason the moderation or cancellation reason
+     * @return the provider refund identifier
+     */
+    String refundPayment(Payment payment, String reason);
 }

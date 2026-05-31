@@ -43,6 +43,12 @@ public class Payment {
     @Column(name = "provider_reference")
     private String providerReference;
 
+    @Column(name = "refund_reference")
+    private String refundReference;
+
+    @Column(name = "refund_requested_at")
+    private Instant refundRequestedAt;
+
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
 
