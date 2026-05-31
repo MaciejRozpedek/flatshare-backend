@@ -12,6 +12,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flatshare_user -d flatshare_db"]
+      interval: 5s
+      retries: 5
+
   pgweb:
     container_name: pgweb
     restart: always
@@ -22,6 +27,7 @@ services:
       - PGWEB_DATABASE_URL=postgres://flatshare_user:flatshare_password@postgres:5432/flatshare_db?sslmode=disable
     depends_on:
       - postgres
+
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite
     container_name: flatshare-azurite
@@ -29,6 +35,20 @@ services:
       - "10000:10000"
     volumes:
       - azurite_data:/data
+
+  app:
+    build: .
+    container_name: flatshare-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/flatshare_db
+      AZURE_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_started
 
 volumes:
   postgres_data:
