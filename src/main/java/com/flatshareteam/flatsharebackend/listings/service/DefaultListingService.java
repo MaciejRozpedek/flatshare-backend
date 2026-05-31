@@ -196,6 +196,16 @@ public class DefaultListingService implements ListingService {
     }
 
     @Override
+    public ListingStatusResponse hideByModeration(UUID listingId) {
+        Listing listing = listingRepository.findById(listingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Listing not found"));
+
+        listing.setStatus(ListingStatus.HIDDEN_BY_MODERATION);
+        Listing savedListing = listingRepository.save(listing);
+        return toResponse(savedListing);
+    }
+
+    @Override
     @Transactional
     public void addUnavailability(UUID listingId, UnavailabilityRequest request, UUID userId) {
         Listing listing = loadOwnedListing(listingId, userId);

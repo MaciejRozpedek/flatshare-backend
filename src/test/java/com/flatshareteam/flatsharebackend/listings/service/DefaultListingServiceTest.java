@@ -5,6 +5,7 @@ import com.flatshareteam.flatsharebackend.bookings.repository.BookingRepository;
 import com.flatshareteam.flatsharebackend.listings.dto.UnavailabilityRequest;
 import com.flatshareteam.flatsharebackend.listings.mapper.ListingMapper;
 import com.flatshareteam.flatsharebackend.listings.model.Listing;
+import com.flatshareteam.flatsharebackend.listings.model.ListingStatus;
 import com.flatshareteam.flatsharebackend.listings.model.Unavailability;
 import com.flatshareteam.flatsharebackend.listings.repository.ApartmentRepository;
 import com.flatshareteam.flatsharebackend.listings.repository.ListingRepository;
@@ -27,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -145,6 +147,36 @@ class DefaultListingServiceTest {
 
         verify(unavailabilityRepository).deleteByIdAndListingId(unavailabilityId, listingId);
         verify(listingRepository, never()).save(listing);
+    }
+
+    @Test
+    void hideByModerationSetsStatusToHiddenByModeration() {
+        UUID listingId = UUID.randomUUID();
+        Listing listing = listing(listingId);
+        listing.setStatus(ListingStatus.ACTIVE);
+
+        when(listingRepository.findById(listingId)).thenReturn(Optional.of(listing));
+        when(listingRepository.save(listing)).thenReturn(listing);
+
+        var response = listingService.hideByModeration(listingId);
+
+        assertThat(response.listingId()).isEqualTo(listingId);
+        assertThat(response.status()).isEqualTo(ListingStatus.HIDDEN_BY_MODERATION);
+        verify(listingRepository).save(listing);
+    }
+
+    @Test
+    void hideByModerationRejectsMissingListing() {
+        UUID listingId = UUID.randomUUID();
+        when(listingRepository.findById(listingId)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> listingService.hideByModeration(listingId)
+        );
+
+        assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        verify(listingRepository, never()).save(any());
     }
 
     private Listing listing(UUID listingId) {
