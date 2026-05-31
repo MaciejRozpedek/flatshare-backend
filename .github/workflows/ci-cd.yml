@@ -31,8 +31,8 @@ jobs:
           distribution: 'microsoft'
           cache: 'maven'
 
-      - name: Start PostgreSQL Database
-        run: docker compose up -d
+      - name: Start PostgreSQL Database and Azurite
+        run: docker compose up -d postgres azurite pgweb
 
       - name: Wait for database to initialize
         run: sleep 10
