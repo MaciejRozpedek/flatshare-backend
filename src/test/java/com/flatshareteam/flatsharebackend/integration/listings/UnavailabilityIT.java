@@ -2,8 +2,6 @@ package com.flatshareteam.flatsharebackend.integration.listings;
 
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginRequest;
 import com.flatshareteam.flatsharebackend.accounts.dto.LoginResponse;
-import com.flatshareteam.flatsharebackend.accounts.model.AccountStatus;
-import com.flatshareteam.flatsharebackend.accounts.model.LandlordRole;
 import com.flatshareteam.flatsharebackend.accounts.model.TenantRole;
 import com.flatshareteam.flatsharebackend.accounts.model.User;
 import com.flatshareteam.flatsharebackend.accounts.repository.LandlordRoleRepository;
@@ -25,7 +23,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -46,17 +43,22 @@ class UnavailabilityIT extends BaseIntegrationTest {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private EntityManager entityManager;
 
-    private static final String PASSWORD = "TestPassword123!";
     private User landlord;
     private String landlordToken;
     private Listing testListing;
 
     @BeforeEach
     void setUp() throws Exception {
-        landlord = createAndSaveLandlord("landlord@test.com");
+        landlord = ListingTestData.createAndSaveLandlord(userRepository, passwordEncoder, "landlord@test.com");
         landlordToken = loginAndGetToken(landlord.getEmail());
 
-        testListing = createAndSaveListing(landlord);
+        testListing = ListingTestData.createAndSaveListing(
+                apartmentRepository,
+                roomRepository,
+                listingRepository,
+                landlordRoleRepository,
+                landlord
+        );
     }
 
     @Test
@@ -109,7 +111,7 @@ class UnavailabilityIT extends BaseIntegrationTest {
     @Test
     void shouldReturn404WhenTryingToAddUnavailabilityToSomeoneElsesListing() throws Exception {
         // given
-        User otherLandlord = createAndSaveLandlord("other@test.com");
+        User otherLandlord = ListingTestData.createAndSaveLandlord(userRepository, passwordEncoder, "other@test.com");
         String otherLandlordToken = loginAndGetToken(otherLandlord.getEmail());
 
         String requestBody = """
@@ -131,7 +133,7 @@ class UnavailabilityIT extends BaseIntegrationTest {
     @Test
     void shouldReturn409WhenUnavailabilityOverlapsWithExistingBooking() throws Exception {
         // given
-        User tenant = createAndSaveTenant("tenant@test.com");
+        User tenant = ListingTestData.createAndSaveTenant(userRepository, passwordEncoder, "tenant@test.com");
         createBooking(testListing, tenant, LocalDate.parse("2030-06-01"), LocalDate.parse("2030-06-30"), BookingStatus.ACCEPTED);
 
         String requestBody = """
@@ -195,65 +197,6 @@ class UnavailabilityIT extends BaseIntegrationTest {
     }
 
 
-    private User createAndSaveLandlord(String email) {
-        User user = new User();
-        user.setFirstName("Landlord");
-        user.setLastName("Test");
-        user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(PASSWORD));
-        user.setStatus(AccountStatus.ACTIVE);
-
-        LandlordRole role = new LandlordRole();
-        user.addRole(role);
-
-        return userRepository.save(user);
-    }
-
-    private User createAndSaveTenant(String email) {
-        User user = new User();
-        user.setFirstName("Tenant");
-        user.setLastName("Test");
-        user.setEmail(email);
-        user.setPasswordHash(passwordEncoder.encode(PASSWORD));
-        user.setStatus(AccountStatus.ACTIVE);
-
-        TenantRole role = new TenantRole();
-        user.addRole(role);
-
-        return userRepository.save(user);
-    }
-
-    private Listing createAndSaveListing(User landlord) {
-        Apartment apartment = apartmentRepository.save(Apartment.builder()
-                .city("Warsaw")
-                .district("Downtown")
-                .street("Main Street")
-                .aptNumber("10")
-                .build());
-
-        Room room = roomRepository.save(Room.builder()
-                .area(15.5f)
-                .pricePerMonth(new Money(BigDecimal.valueOf(2000), "PLN"))
-                .apartment(apartment)
-                .build());
-
-        LandlordRole landlordRole = landlordRoleRepository.findByUserId(landlord.getId()).orElseThrow();
-
-        return listingRepository.save(Listing.builder()
-                .title("Cozy Room")
-                .description("Very nice room")
-                .price(new Money(BigDecimal.valueOf(2000), "PLN"))
-                .status(ListingStatus.ACTIVE)
-                .createdAt(Instant.now())
-                .availableSince(LocalDate.now())
-                .availableUntil(LocalDate.now().plusYears(1))
-                .ownerContact("123456789")
-                .attributes(ListingAttributes.builder().petsAllowed(false).nonSmokingOnly(true).build())
-                .room(room)
-                .landlordRole(landlordRole)
-                .build());
-    }
-
     private void createBooking(Listing listing, User tenant, LocalDate start, LocalDate end, BookingStatus status) {
         TenantRole tenantRole = tenantRoleRepository.findByUserId(tenant.getId()).orElseThrow();
         Booking booking = Booking.builder()
@@ -268,7 +211,7 @@ class UnavailabilityIT extends BaseIntegrationTest {
     }
 
     private String loginAndGetToken(String email) throws Exception {
-        LoginRequest request = new LoginRequest(email, PASSWORD);
+        LoginRequest request = new LoginRequest(email, ListingTestData.DEFAULT_PASSWORD);
 
         String response = mockMvc.perform(post("/api/v1/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
