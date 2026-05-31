@@ -3,6 +3,8 @@ package com.flatshareteam.flatsharebackend.payments.adapter.payu;
 import com.flatshareteam.flatsharebackend.payments.adapter.payu.dto.PayUAuthResponse;
 import com.flatshareteam.flatsharebackend.payments.adapter.payu.dto.PayUOrderRequest;
 import com.flatshareteam.flatsharebackend.payments.adapter.payu.dto.PayUOrderResponse;
+import com.flatshareteam.flatsharebackend.payments.adapter.payu.dto.PayURefundRequest;
+import com.flatshareteam.flatsharebackend.payments.adapter.payu.dto.PayURefundResponse;
 import com.flatshareteam.flatsharebackend.payments.model.Payment;
 import com.flatshareteam.flatsharebackend.payments.port.IPaymentGateway;
 import lombok.RequiredArgsConstructor;
@@ -93,6 +95,65 @@ public class PayUAdapter implements IPaymentGateway {
             log.error("Error communicating with PayU gateway", e);
             throw new RuntimeException("Payment Gateway Error", e);
         }
+    }
+
+    @Override
+    public String refundPayment(Payment payment, String reason) {
+        if (payment.getProviderReference() == null || payment.getProviderReference().isBlank()) {
+            throw new IllegalArgumentException("Payment provider reference is required for refund");
+        }
+
+        String token = getAccessToken();
+        PayURefundRequest requestBody = PayURefundRequest.builder()
+                .refund(PayURefundRequest.Refund.builder()
+                        .description(buildRefundDescription(payment, reason))
+                        .extRefundId(payment.getId().toString())
+                        .currencyCode(payment.getCurrency())
+                        .type("REFUND_PAYMENT_STANDARD")
+                        .build())
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+
+        HttpEntity<PayURefundRequest> request = new HttpEntity<>(requestBody, headers);
+        String url = payUProperties.getBaseUrl()
+                + "/api/v2_1/orders/"
+                + payment.getProviderReference()
+                + "/refunds";
+
+        log.info("Sending refund request to PayU: {}", url);
+
+        try {
+            ResponseEntity<PayURefundResponse> response = restTemplate.postForEntity(
+                    url,
+                    request,
+                    PayURefundResponse.class
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                PayURefundResponse body = response.getBody();
+                if (body.getStatus() != null && "SUCCESS".equals(body.getStatus().getStatusCode())) {
+                    if (body.getRefund() != null && body.getRefund().getRefundId() != null) {
+                        return body.getRefund().getRefundId();
+                    }
+                    return payment.getId().toString();
+                }
+                String status = body.getStatus() != null ? body.getStatus().getStatusCode() : "UNKNOWN";
+                throw new RuntimeException("PayU refund failed: " + status);
+            }
+
+            throw new RuntimeException("Failed to initiate refund with PayU. Status: " + response.getStatusCode());
+        } catch (Exception e) {
+            log.error("Error communicating with PayU refund endpoint", e);
+            throw new RuntimeException("Payment Gateway Refund Error", e);
+        }
+    }
+
+    private String buildRefundDescription(Payment payment, String reason) {
+        String normalizedReason = reason == null || reason.isBlank() ? "Moderation refund" : reason.trim();
+        return "Refund for booking " + payment.getBookingId() + ": " + normalizedReason;
     }
 
     private synchronized String getAccessToken() {

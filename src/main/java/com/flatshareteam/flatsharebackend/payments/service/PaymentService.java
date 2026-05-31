@@ -8,10 +8,13 @@ import com.flatshareteam.flatsharebackend.payments.port.IPaymentGateway;
 import com.flatshareteam.flatsharebackend.payments.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +28,9 @@ public class PaymentService {
     private final PaymentRepository paymentRepository;
     private final IPaymentGateway paymentGateway;
     private final IPaymentNotificationPort notificationPort;
+
+    public record RefundInitiationResult(UUID paymentId, String refundReference) {
+    }
 
     @Transactional
     public com.flatshareteam.flatsharebackend.payments.controller.dto.PaymentInitiationResponse initiatePayment(UUID bookingId, BigDecimal amount, String currency, com.flatshareteam.flatsharebackend.payments.controller.dto.PaymentInitiationRequest request) {
@@ -115,6 +121,33 @@ public class PaymentService {
                 .max(java.util.Comparator.comparing(Payment::getCreatedAt))
                 .map(this::mapToDTO)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND, "Payment not found for booking"));
+    }
+
+    @Transactional
+    public RefundInitiationResult initiateRefundForBooking(UUID bookingId, String reason) {
+        Payment payment = paymentRepository.findFirstByBookingIdAndStatusOrderByCreatedAtDesc(
+                        bookingId,
+                        PaymentStatus.SUCCEEDED
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Succeeded payment not found for booking"
+                ));
+
+        if (payment.getProviderReference() == null || payment.getProviderReference().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Payment provider reference is missing"
+            );
+        }
+
+        String refundReference = paymentGateway.refundPayment(payment, reason);
+        payment.setStatus(PaymentStatus.REFUND_PENDING);
+        payment.setRefundReference(refundReference);
+        payment.setRefundRequestedAt(Instant.now());
+        paymentRepository.save(payment);
+
+        return new RefundInitiationResult(payment.getId(), refundReference);
     }
 
     private com.flatshareteam.flatsharebackend.payments.controller.dto.PaymentDTO mapToDTO(Payment payment) {
